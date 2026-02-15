@@ -1,10 +1,10 @@
-import React from 'react'
-import { useLocation } from 'react-router'
+import { useLocation, useParams } from 'react-router'
+
 
 const VisualizerId = () => {
-
+    const { id } = useParams<{ id: string }>();
     const location = useLocation();
-    const { initialImage, name } = location.state || {};
+    const { initialImage, name } = (location.state as VisualizerLocationState) || {};
     return (
         <section>
             <h1>{name || "Untitled Project"}</h1>

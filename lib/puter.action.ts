@@ -25,9 +25,8 @@ export const createProject = async ({ item }: CreateProjectParams): Promise<Desi
         ? await uploadImageToHosting({ hosting, url: item.renderedImage, projectId, label: "rendered" })
         : null;
 
-    const resolvedSource = hostedSource?.url || isHostedUrl(item.sourceImage)
-        ? item.sourceImage
-        : '';
+    const resolvedSource = hostedSource?.url
+        || (isHostedUrl(item.sourceImage) ? item.sourceImage : '');
 
     if (!resolvedSource) {
         console.warn('Failed to host source image, skipping save.');
@@ -35,10 +34,10 @@ export const createProject = async ({ item }: CreateProjectParams): Promise<Desi
     }
 
     const resolvedRender = hostedRender?.url
-    ? hostedRender?.url
-    : item.renderedImage && isHostedUrl(item.renderedImage)
-        ? item.renderedImage
-        : undefined;
+        ? hostedRender?.url
+        : item.renderedImage && isHostedUrl(item.renderedImage)
+            ? item.renderedImage
+            : undefined;
 
     const {
         sourcePath: _sourcePath,
