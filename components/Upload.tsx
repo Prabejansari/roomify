@@ -1,6 +1,6 @@
 import { PROGRESS_INCREMENT, PROGRESS_INTERVAL_MS, REDIRECT_DELAY_MS } from 'lib/constants';
 import { CheckCircle2, ImageIcon, UploadIcon } from 'lucide-react';
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router';
 
 interface UploadProps {
@@ -15,6 +15,16 @@ const Upload = ({ onComplete }: UploadProps) => {
 
     const { isSignedIn } = useOutletContext<AuthContext>();
 
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, []);
+
     const processFile = useCallback((file: File) => {
         if (!isSignedIn) return;
 
@@ -22,13 +32,19 @@ const Upload = ({ onComplete }: UploadProps) => {
         setProgress(0);
 
         const reader = new FileReader();
+        reader.onerror = () => {
+            setFile(null);
+            setProgress(0);
+            // Optionally: show error message to user
+        };
         reader.onloadend = () => {
             const base64Data = reader.result as string;
-            const interval = setInterval(() => {
+            intervalRef.current = setInterval(() => {
                 setProgress((prev) => {
                     const next = prev + PROGRESS_INCREMENT;
                     if (next >= 100) {
-                        clearInterval(interval);
+                        clearInterval(intervalRef.current!);
+                        intervalRef.current = null;
                         setTimeout(() => {
                             onComplete?.(base64Data);
                         }, REDIRECT_DELAY_MS);
