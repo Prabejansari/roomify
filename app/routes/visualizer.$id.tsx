@@ -3,6 +3,7 @@ import { generate3DView } from 'lib/ai.action';
 import { createProject, getProjectById } from 'lib/puter.action';
 import { Box, Download, RefreshCcw, Share2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
 import { useLocation, useNavigate, useOutletContext, useParams } from 'react-router'
 
 
@@ -19,6 +20,35 @@ const VisualizerId = () => {
 
 
     const handleBack = () => navigate("/");
+
+    const handleExport = async () => {
+        if (!currentImage) return;
+
+        try {
+            // Fetch the image as a blob
+            const response = await fetch(currentImage);
+            const blob = await response.blob();
+
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Generate filename based on project name and timestamp
+            const filename = `${project?.name || `Residence_${id}`}_render_${Date.now()}.png`;
+            link.download = filename;
+
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Failed to export image:", error);
+        }
+    };
 
     const runGeneration = async (item: DesignItem) => {
         if (!id || !item.sourceImage) return;
@@ -37,8 +67,8 @@ const VisualizerId = () => {
                     isPublic: item.isPublic ?? false,
                 }
 
-                const saved = await createProject({item: updatedItem, visibility: "private"})
-                if(saved){
+                const saved = await createProject({ item: updatedItem, visibility: "private" })
+                if (saved) {
                     setCurrentImage(saved.renderedImage || result.renderedImage);
                 }
             }
@@ -49,51 +79,51 @@ const VisualizerId = () => {
         }
     }
 
- useEffect(() => {
-    let isMounted = true;
+    useEffect(() => {
+        let isMounted = true;
 
-    const loadProject = async () => {
-      if (!id) {
-        setIsProjectLoading(false);
-        return;
-      }
+        const loadProject = async () => {
+            if (!id) {
+                setIsProjectLoading(false);
+                return;
+            }
 
-      setIsProjectLoading(true);
+            setIsProjectLoading(true);
 
-      const fetchedProject = await getProjectById({ id });
+            const fetchedProject = await getProjectById({ id });
 
-      if (!isMounted) return;
+            if (!isMounted) return;
 
-      setProject(fetchedProject);
-      setCurrentImage(fetchedProject?.renderedImage || null);
-      setIsProjectLoading(false);
-      hasInitialGenerated.current = false;
-    };
+            setProject(fetchedProject);
+            setCurrentImage(fetchedProject?.renderedImage || null);
+            setIsProjectLoading(false);
+            hasInitialGenerated.current = false;
+        };
 
-    loadProject();
+        loadProject();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
+        return () => {
+            isMounted = false;
+        };
+    }, [id]);
 
-  useEffect(() => {
-    if (
-      isProjectLoading ||
-      hasInitialGenerated.current ||
-      !project?.sourceImage
-    )
-      return;
+    useEffect(() => {
+        if (
+            isProjectLoading ||
+            hasInitialGenerated.current ||
+            !project?.sourceImage
+        )
+            return;
 
-    if (project.renderedImage) {
-      setCurrentImage(project.renderedImage);
-      hasInitialGenerated.current = true;
-      return;
-    }
+        if (project.renderedImage) {
+            setCurrentImage(project.renderedImage);
+            hasInitialGenerated.current = true;
+            return;
+        }
 
-    hasInitialGenerated.current = true;
-    void runGeneration(project);
-  }, [project, isProjectLoading]);
+        hasInitialGenerated.current = true;
+        void runGeneration(project);
+    }, [project, isProjectLoading]);
     return (
         <div className="visualizer">
             <nav className="topbar">
@@ -118,7 +148,7 @@ const VisualizerId = () => {
                         <div className="panel-actions">
                             <Button
                                 size="sm"
-                                onClick={() => { }}
+                                onClick={handleExport}
                                 className="export"
                                 disabled={!currentImage}
                             >
@@ -146,6 +176,40 @@ const VisualizerId = () => {
                                             <span className="subtitle">Generating your 3D visualization</span>
                                         </div>
                                     </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="panel compare">
+                    <div className="panel-header">
+                        <div className="panel-meta">
+                            <p>Comparison</p>
+                            <h3>Before and After</h3>
+                        </div>
+                        <div className="hint">Drag and compare</div>
+                    </div>
+                    <div className="compare-stage">
+                        {project?.sourceImage && currentImage ? (
+                            <ReactCompareSlider
+                                defaultValue={50}
+                                style={{ width: "100%", height: 'auto' }}
+                                itemOne={
+                                    <ReactCompareSliderImage src={project?.sourceImage}
+                                        alt='before'
+                                        className='compare-img' />
+                                }
+                                itemTwo={
+                                    <ReactCompareSliderImage src={currentImage || project?.renderedImage!}
+                                        alt='after'
+                                        className='compare-img' />
+                                }
+                            />
+                        ) : (
+                            <div className="compare-fallback">
+                                {project?.sourceImage && (
+                                    <img src={project.sourceImage} alt="Before" className='compare-img' />
                                 )}
                             </div>
                         )}
